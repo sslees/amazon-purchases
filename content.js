@@ -1,20 +1,19 @@
 const ORDER_ID_SEL = '.order-header [class$="order-id"]';
-const REFUND_REGEX = /(\w+\s+\d{1,2},\s+\d{4})(?:.|\s)*(\$\d+\.\d{2})/;
-const PAYMENT_REGEX = /(\w+\s+\d{1,2},\s+\d{4})(?:.|\s)*?(\w+) ending in (\d+)(?:.|\s)*(\$\d+\.\d{2})/;
 
 async function fetchTxnDetails(orderId) {
-    const url = `https://www.amazon.com/gp/your-account/order-details?orderID=${orderId}`;
+    const url = `https://www.amazon.com/gp/css/summary/print.html?orderID=${orderId}`;
     const response = await fetch(url, { credentials: 'include' });
 
     if (!response.ok) return;
 
-    return new DOMParser().parseFromString(await response.text(), 'text/html')
-        .querySelectorAll('[data-component="paymentDetails"] .a-last .a-expander-container .a-row');
+    const text = new DOMParser().parseFromString(await response.text(), 'text/html').body.innerText;
+
+    return [...text.matchAll(/(\w+) ending in (\d{4}):\s*(\w+ \d{1,2}, \d{4}):\s*(\$\d+\.\d{2})/g)];
 }
 
 async function addTxnDetails() {
     document.querySelectorAll(ORDER_ID_SEL).forEach(async order => {
-        const orderNumberMatch = order.innerText.match(/#\s+(\d+(?:-\d+)*)/);
+        const orderNumberMatch = order.innerText.match(/# (\d+(?:-\d+)*)/);
 
         if (order.querySelector('.txn-info') || !orderNumberMatch) return;
         (await fetchTxnDetails(orderNumberMatch[1])).forEach(txn => {
@@ -22,16 +21,7 @@ async function addTxnDetails() {
 
             order.appendChild(txnDiv);
             txnDiv.className = 'txn-info';
-            if (txn.matches('.a-color-success')) {
-                const m = txn.innerText.match(REFUND_REGEX);
-
-                txnDiv.classList.add('a-color-success');
-                txnDiv.textContent = `${m[2]} refund on ${m[1]}`
-            } else {
-                const m = txn.innerText.match(PAYMENT_REGEX);
-
-                txnDiv.textContent = `${m[4]} on ${m[1]} (${m[2]} *${m[3]})`
-            }
+            txnDiv.textContent = `${txn[4]} on ${txn[3]} (${txn[1]} *${txn[2]})`; // type, number, date, amount
         });
     });
 }

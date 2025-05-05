@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Amazon Purchases",
-    "version": "1.0",
+    "version": "2.0",
     "description": "Adds invoice details to Amazon orders.",
     "content_scripts": [
         {
@@ -10,6 +10,7 @@
             ],
             "matches": [
                 "https://www.amazon.com/gp/css/order-history*",
+                "https://www.amazon.com/gp/your-account/order-history*",
                 "https://www.amazon.com/your-orders/orders*"
             ]
         }
